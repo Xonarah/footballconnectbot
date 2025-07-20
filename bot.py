@@ -516,7 +516,7 @@ def main() -> None:
     # Render предоставляет публичный домен через переменную окружения RENDER_EXTERNAL_HOSTNAME
     # Используем HTTPS, как требует Telegram
     RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-        if not RENDER_EXTERNAL_HOSTNAME:
+    if not RENDER_EXTERNAL_HOSTNAME:
         raise ValueError("RENDER_EXTERNAL_HOSTNAME environment variable not set. This is required for webhooks on Render.")
 
     # url_path может быть любым уникальным путем, например, токеном бота для большей уникальности.
