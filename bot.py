@@ -510,27 +510,29 @@ def main() -> None:
 
     # --- ИЗМЕНЕНИЯ ЗДЕСЬ: Настройка вебхука вместо polling ---
     # Получаем порт из переменной окружения Render. Render сам устанавливает PORT.
-    PORT = int(os.environ.get("PORT", "8443")) # По умолчанию 8443, но Render предоставит свой
-    
-    # Render предоставляет публичный URL, а путь (url_path) будет относительным.
+    PORT = int(os.environ.get("PORT", "8080")) # Изменим порт по умолчанию на 8080, если PORT не установлен
+                                           # Render обычно использует 10000, но 8080 - это обычный веб-порт
+
+    # Render предоставляет публичный домен через переменную окружения RENDER_EXTERNAL_HOSTNAME
+    # Используем HTTPS, как требует Telegram
+    RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+        if not RENDER_EXTERNAL_HOSTNAME:
+        raise ValueError("RENDER_EXTERNAL_HOSTNAME environment variable not set. This is required for webhooks on Render.")
+
     # url_path может быть любым уникальным путем, например, токеном бота для большей уникальности.
     WEBHOOK_PATH = f"/{TOKEN}" # Делаем путь уникальным, используя токен бота
-    
-    # Render также предоставляет свой URL для вебхука, который мы получим позже.
-    # Пока что оставим webhook_url пустым, так как он будет установлен автоматически.
-    # ВАЖНО: python-telegram-bot сам делает set_webhook при первом запуске run_webhook,
-    # используя публичный URL, который Render ему предоставляет.
-    
+
+    # Формируем полный URL вебхука
+    WEBHOOK_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}{WEBHOOK_PATH}"
+
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=WEBHOOK_PATH,
-        # webhook_url не указываем, т.к. Render сам построит его на основе своего домена
-        # и сообщит его библиотеке при запуске.
+        webhook_url=WEBHOOK_URL # <--- ЭТО САМОЕ ВАЖНОЕ ИЗМЕНЕНИЕ
     )
 
-    logger.info("Бот запущен в режиме вебхука на Render.")
-    # application.run_polling(allowed_updates=Update.ALL_TYPES) # Эту строку теперь удалили
+    logger.info(f"Бот запущен в режиме вебхука на Render. URL: {WEBHOOK_URL}")
 
 if __name__ == "__main__":
     main()
