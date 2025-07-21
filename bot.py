@@ -29,7 +29,7 @@ if not REDIS_URL:
 try:
     # Инициализируем Redis-клиент
     # decode_responses=True позволяет получать строки Python вместо байтов
-    [cite_start]r = redis.from_url(REDIS_URL, decode_responses=True) [cite: 2]
+    r = redis.from_url(REDIS_URL, decode_responses=True)
     r.ping() # Проверяем соединение
     logging.info("Successfully connected to Redis.")
 except redis.exceptions.ConnectionError as e:
@@ -51,7 +51,7 @@ event_data = {} # Глобальная переменная для хранен�
 def load_global_event_data_from_redis():
     """
     Загружает глобальное состояние события (event_data) из Redis.
-    [cite_start]Эта функция вызывается только один раз при старте приложения. [cite: 3]
+    Эта функция вызывается только один раз при старте приложения.
     """
     global event_data
     event_data_json = r.get(EVENT_DATA_KEY)
@@ -62,7 +62,7 @@ def load_global_event_data_from_redis():
         logger.info("No global event data found in Redis. Initializing default.")
         event_data = {
             'status': 'open',
-            [cite_start]'title': None, [cite: 4]
+            'title': None,
             'participants': {},
             'plus_ones': []
         }
@@ -71,7 +71,7 @@ def load_chat_specific_state_for_context(chat_id: int, context: ContextTypes.DEF
     """
     Загружает chat-специфичные данные (ID сообщения, команды, ошибки) из Redis
     и помещает их в context.chat_data для текущего чата.
-    [cite_start]Вызывается в начале каждого обработчика, которому нужны эти данные. [cite: 5]
+    Вызывается в начале каждого обработчика, которому нужны эти данные.
     """
     # Если данные уже есть в context.chat_data, не загружаем их снова,
     # чтобы избежать перезаписи актуальных данных, измененных в рамках одного обновления.
@@ -85,7 +85,7 @@ def load_chat_specific_state_for_context(chat_id: int, context: ContextTypes.DEF
     main_chat_id = r.get(f"{MAIN_CHAT_ID_KEY}:{chat_id}")
 
     shuffled_teams_json = r.get(f"{SHUFFLED_TEAMS_KEY}:{chat_id}")
-    # [cite_start]decode_responses=True уже конвертирует "None" в строку "None", а не None [cite: 6]
+    # decode_responses=True уже конвертирует "None" в строку "None", а не None
     shuffle_error = r.get(f"{SHUFFLE_ERROR_KEY}:{chat_id}")
 
     if main_message_id:
@@ -99,12 +99,12 @@ def load_chat_specific_state_for_context(chat_id: int, context: ContextTypes.DEF
 
 
 def save_event_state(current_main_message_id=None, current_main_chat_id=None,
-                     [cite_start]current_shuffled_teams=None, current_shuffle_error=None): [cite: 7]
+                     current_shuffled_teams=None, current_shuffle_error=None):
     """
-    [cite_start]Сохраняет текущее глобальное состояние события и chat-специфичные данные в Redis. [cite: 7]
-    [cite_start]Global event_data сохраняется всегда. [cite: 8]
-    [cite_start]Chat-специфичные данные сохраняются, если передан current_main_chat_id. [cite: 8]
-    [cite_start]""" [cite: 9]
+    Сохраняет текущее глобальное состояние события и chat-специфичные данные в Redis.
+    Global event_data сохраняется всегда.
+    Chat-специфичные данные сохраняются, если передан current_main_chat_id.
+    """
     # Сохраняем event_data (глобальное состояние)
     r.set(EVENT_DATA_KEY, json.dumps(event_data))
 
@@ -116,7 +116,7 @@ def save_event_state(current_main_message_id=None, current_main_chat_id=None,
         else:
             r.delete(f"{MAIN_MESSAGE_ID_KEY}:{chat_id}") # Удаляем, если ID сообщения нет
 
-        [cite_start]r.set(f"{MAIN_CHAT_ID_KEY}:{chat_id}", str(chat_id)) [cite: 10]
+        r.set(f"{MAIN_CHAT_ID_KEY}:{chat_id}", str(chat_id))
 
         if current_shuffled_teams is not None:
             r.set(f"{SHUFFLED_TEAMS_KEY}:{chat_id}", json.dumps(current_shuffled_teams))
@@ -126,7 +126,7 @@ def save_event_state(current_main_message_id=None, current_main_chat_id=None,
         if current_shuffle_error is not None:
             r.set(f"{SHUFFLE_ERROR_KEY}:{chat_id}", current_shuffle_error)
         else:
-            [cite_start]r.delete(f"{SHUFFLE_ERROR_KEY}:{chat_id}") # Если ошибка была, но теперь ее нет, удаляем ключ [cite: 11]
+            r.delete(f"{SHUFFLE_ERROR_KEY}:{chat_id}") # Если ошибка была, но теперь ее нет, удаляем ключ
             
         logger.info(f"Event state saved to Redis for chat {chat_id}.")
     else:
@@ -144,7 +144,7 @@ logger = logging.getLogger(__name__)
 TITLE_STATE = range(1)
 
 # Helper function to create a clickable name
-[cite_start]def get_clickable_name(user_id: int, user_name: str, username: str = None) -> str: [cite: 12]
+def get_clickable_name(user_id: int, user_name: str, username: str = None) -> str:
     """Returns the user's name as an HTML link to their profile, if possible,
     with proper HTML escaping of the name."""
     escaped_user_name = html.escape(user_name)
@@ -159,7 +159,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
     plus_one_entries_formatted = []
     not_going_list = []
     maybe_list = []
-    [cite_start]total_going_count = 0 [cite: 13]
+    total_going_count = 0
 
     for user_id, user_info in event_data['participants'].items():
         name = user_info['name']
@@ -172,7 +172,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
             direct_going_participants.append(display_name)
             total_going_count += 1
         elif status == 'not_going':
-            [cite_start]not_going_list.append(display_name) [cite: 14]
+            not_going_list.append(display_name)
         elif status == 'maybe':
             maybe_list.append(display_name)
 
@@ -183,7 +183,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
 
         clickable_adder = get_clickable_name(added_by_id, added_by_name, added_by_username)
         plus_one_entries_formatted.append(f"➕ (+1 from {clickable_adder})")
-        [cite_start]total_going_count += 1 [cite: 15]
+        total_going_count += 1
 
     message_text = ""
     title_to_display = event_data['title'] if event_data['title'] else "Event Title (Not Set)"
@@ -195,7 +195,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
         for name in direct_going_participants:
             all_going_entries_formatted.append(f"✅ {name}")
         for entry in plus_one_entries_formatted:
-            [cite_start]all_going_entries_formatted.append(entry) [cite: 16]
+            all_going_entries_formatted.append(entry)
         message_text += "\n".join(all_going_entries_formatted) + "\n"
     else:
         message_text += "  (Nobody yet)\n"
@@ -208,7 +208,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
         message_text += "\n🔴 Not Going:\n"
         message_text += "\n".join([f"❌ {name}" for name in not_going_list]) + "\n"
 
-    [cite_start]message_text += "\n" + "=" * 20 + "\n" [cite: 17]
+    message_text += "\n" + "=" * 20 + "\n"
     message_text += f"👥 Total Going: {total_going_count}\n"
     message_text += f"📅 Created: {datetime.now().strftime('%d %B %Y')}\n\n"
 
@@ -218,12 +218,12 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
         message_text += "--- TEAM COMPOSITIONS ---\n"
         team_emojis = ["🔵", "🔴", "🟡", "🟢", "🟣", "⚪"]
         for i, team in enumerate(context.chat_data['shuffled_teams']):
-            [cite_start]emoji = team_emojis[i % len(team_emojis)] [cite: 18]
+            emoji = team_emojis[i % len(team_emojis)]
             message_text += f"{emoji} Team {i+1}:\n"
             if team:
                 message_text += "\n".join([f"- {player}" for player in team]) + "\n"
             else:
-                [cite_start]message_text += "  (Empty)\n" [cite: 19]
+                message_text += "  (Empty)\n"
         message_text += "------------------------\n\n"
     elif 'shuffle_error' in context.chat_data and context.chat_data['shuffle_error']:
         message_text += f"\n❗️ {context.chat_data['shuffle_error']}\n\n"
@@ -234,7 +234,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
         status_buttons = [
             InlineKeyboardButton("✅ Going", callback_data="set_status_going"),
             InlineKeyboardButton("❌ Not Going", callback_data="set_status_not_going"),
-            [cite_start]InlineKeyboardButton("🤔 Thinking", callback_data="set_status_maybe"), [cite: 20]
+            InlineKeyboardButton("🤔 Thinking", callback_data="set_status_maybe"),
         ]
 
         plus_minus_buttons = [
@@ -246,7 +246,7 @@ async def get_event_message_and_keyboard(context: ContextTypes.DEFAULT_TYPE) -> 
         keyboard.append(plus_minus_buttons)
 
     toggle_status_button = InlineKeyboardButton(
-        [cite_start]"⛔ Close Vote" if event_data['status'] == 'open' else "▶️ Open Vote", [cite: 21]
+        "⛔ Close Vote" if event_data['status'] == 'open' else "▶️ Open Vote",
         callback_data="admin_close_collection" if event_data['status'] == 'open' else "admin_open_collection"
     )
 
@@ -283,8 +283,8 @@ async def send_main_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_chat_id = context.chat_data.get('main_chat_id') # Должен быть равен chat_id текущего обновления
 
     # Если main_message_id не найден в context.chat_data (либо он None), или chat_id не совпадает,
-    # [cite_start]отправляем новое сообщение. [cite: 23]
-    [cite_start]if not main_message_id or main_chat_id != chat_id: [cite: 24]
+    # отправляем новое сообщение.
+    if not main_message_id or main_chat_id != chat_id:
         sent_message = await update.effective_message.reply_html(text=message_text, reply_markup=reply_markup)
         context.chat_data['main_message_id'] = sent_message.message_id
         context.chat_data['main_chat_id'] = sent_message.chat_id
@@ -293,7 +293,7 @@ async def send_main_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent_message.message_id, 
             sent_message.chat_id,
             context.chat_data.get('shuffled_teams'),
-            [cite_start]context.chat_data.get('shuffle_error') [cite: 25]
+            context.chat_data.get('shuffle_error')
         )
         logger.info(f"New main message sent. ID: {sent_message.message_id} for chat {chat_id}")
     else:
@@ -301,48 +301,48 @@ async def send_main_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.edit_message_text(
                 chat_id=main_chat_id, # Используем chat_id из context.chat_data
                 message_id=main_message_id, # Используем message_id из context.chat_data
-                [cite_start]text=message_text, [cite: 26]
+                text=message_text,
                 reply_markup=reply_markup,
                 parse_mode='HTML'
             )
             logger.info(f"Main message {main_message_id} updated for chat {chat_id}.")
             
             save_event_state(
-                [cite_start]main_message_id, [cite: 27]
+                main_message_id,
                 main_chat_id,
                 context.chat_data.get('shuffled_teams'),
                 context.chat_data.get('shuffle_error')
             )
         except telegram.error.BadRequest as e:
-            [cite_start]if "Message is not modified" in str(e): [cite: 28]
-                [cite_start]logger.info(f"Main message {main_message_id} was not modified for chat {chat_id}. Ignoring.") [cite: 29]
+            if "Message is not modified" in str(e):
+                logger.info(f"Main message {main_message_id} was not modified for chat {chat_id}. Ignoring.")
                 save_event_state( # Все равно сохраняем, чтобы обновить TTL, если он есть
                     main_message_id, 
                     main_chat_id,
                     context.chat_data.get('shuffled_teams'),
-                    [cite_start]context.chat_data.get('shuffle_error') [cite: 30]
+                    context.chat_data.get('shuffle_error')
                 )
             else:
                 logger.warning(f"Failed to update main message (ID: {main_message_id}, Chat: {main_chat_id}) due to BadRequest: {e}. Sending new message.")
                 sent_message = await update.effective_message.reply_html(text=message_text, reply_markup=reply_markup)
-                [cite_start]context.chat_data['main_message_id'] = sent_message.message_id [cite: 31]
+                context.chat_data['main_message_id'] = sent_message.message_id
                 context.chat_data['main_chat_id'] = sent_message.chat_id
                 
                 save_event_state(
                     sent_message.message_id, 
-                    [cite_start]context.chat_data.get('main_chat_id'), [cite: 32]
+                    context.chat_data.get('main_chat_id'),
                     context.chat_data.get('shuffled_teams'),
                     context.chat_data.get('shuffle_error')
                 )
         except Exception as e:
-            [cite_start]logger.warning(f"An unexpected error occurred while updating the main message (ID: {main_message_id}, Chat: {main_chat_id}): {e}. Sending new message.") [cite: 33]
+            logger.warning(f"An unexpected error occurred while updating the main message (ID: {main_message_id}, Chat: {main_chat_id}): {e}. Sending new message.")
             sent_message = await update.effective_message.reply_html(text=message_text, reply_markup=reply_markup)
             context.chat_data['main_message_id'] = sent_message.message_id
             context.chat_data['main_chat_id'] = sent_message.chat_id
             
             save_event_state(
                 sent_message.message_id, 
-                [cite_start]sent_message.chat_id, [cite: 34]
+                sent_message.chat_id,
                 context.chat_data.get('shuffled_teams'),
                 context.chat_data.get('shuffle_error')
             )
@@ -360,7 +360,7 @@ async def start_command_title_entry(update: Update, context: ContextTypes.DEFAUL
         'title': None,
         'participants': {},
         'plus_ones': []
-    [cite_start]} [cite: 35]
+    }
     
     # Clear context.chat_data for the current chat
     context.chat_data.clear()
@@ -368,7 +368,7 @@ async def start_command_title_entry(update: Update, context: ContextTypes.DEFAUL
     # Also clear Redis entries specific to THIS CHAT and global event_data
     r.delete(EVENT_DATA_KEY) # Global event data
     r.delete(f"{MAIN_MESSAGE_ID_KEY}:{chat_id}") # Chat-specific
-    [cite_start]r.delete(f"{MAIN_CHAT_ID_KEY}:{chat_id}")    # Chat-specific [cite: 36]
+    r.delete(f"{MAIN_CHAT_ID_KEY}:{chat_id}")    # Chat-specific
     r.delete(f"{SHUFFLED_TEAMS_KEY}:{chat_id}")  # Chat-specific
     r.delete(f"{SHUFFLE_ERROR_KEY}:{chat_id}")   # Chat-specific
     logger.info(f"Event data and message IDs cleared from Redis for new event for chat {chat_id}.")
@@ -382,12 +382,12 @@ async def set_title_prompt_callback(update: Update, context: ContextTypes.DEFAUL
     # Загружаем chat-специфичные данные
     load_chat_specific_state_for_context(update.effective_chat.id, context)
 
-    [cite_start]await update.callback_query.answer("Enter new title.") [cite: 37]
+    await update.callback_query.answer("Enter new title.")
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Please enter the new event title in the chat."
     )
-    [cite_start]logger.info(f"'Edit Title' button pressed by user {update.effective_user.id}. Prompting for title.") [cite: 38]
+    logger.info(f"'Edit Title' button pressed by user {update.effective_user.id}. Prompting for title.")
     return TITLE_STATE
 
 async def receive_title(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -401,7 +401,7 @@ async def receive_title(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         event_data['title'] = update.message.text.strip()
         
         save_event_state(
-            [cite_start]context.chat_data.get('main_message_id'), [cite: 39]
+            context.chat_data.get('main_message_id'),
             context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
             context.chat_data.get('shuffle_error')
@@ -413,7 +413,7 @@ async def receive_title(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
         return ConversationHandler.END
     else:
-        [cite_start]logger.warning("receive_title called but no text message found or message is empty. Remaining in TITLE_STATE.") [cite: 40]
+        logger.warning("receive_title called but no text message found or message is empty. Remaining in TITLE_STATE.")
         await update.message.reply_text("Please enter the new title as text.")
         return TITLE_STATE
 
@@ -427,7 +427,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
     load_chat_specific_state_for_context(chat_id, context)
 
     if event_data['status'] == 'open':
-        [cite_start]await query.answer("Please close the vote before shuffling teams.") [cite: 41]
+        await query.answer("Please close the vote before shuffling teams.")
         await send_main_message(update, context)
         return
 
@@ -438,7 +438,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
     for plus_one_entry in event_data['plus_ones']:
         added_by_id = plus_one_entry['added_by_id']
         added_by_name = plus_one_entry['added_by_name']
-        [cite_start]added_by_username = plus_one_entry.get('added_by_username') [cite: 42]
+        added_by_username = plus_one_entry.get('added_by_username')
         all_players_to_shuffle.append(f"➕ (+1 from {get_clickable_name(added_by_id, added_by_name, added_by_username)})")
 
     total_players = len(all_players_to_shuffle)
@@ -448,7 +448,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
         if total_players == 0:
             error_message = "No players marked as 'Going' to shuffle."
         elif total_players == 1:
-            [cite_start]error_message = "Cannot form teams with only one player." [cite: 43]
+            error_message = "Cannot form teams with only one player."
         
         context.chat_data['shuffle_error'] = error_message
         context.chat_data['shuffled_teams'] = []
@@ -457,7 +457,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
             context.chat_data.get('main_message_id'), 
             context.chat_data.get('main_chat_id'),
             context.chat_data['shuffled_teams'], 
-            [cite_start]context.chat_data['shuffle_error'] [cite: 44]
+            context.chat_data['shuffle_error']
         )
         await query.answer(error_message)
         await send_main_message(update, context)
@@ -474,7 +474,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
     
     for i in possible_num_teams_options:
         if i <= total_players:
-            [cite_start]current_row.append(InlineKeyboardButton(str(i), callback_data=f"select_teams_{i}")) [cite: 45]
+            current_row.append(InlineKeyboardButton(str(i), callback_data=f"select_teams_{i}"))
             if len(current_row) == num_cols:
                 team_buttons.append(current_row)
                 current_row = []
@@ -484,7 +484,7 @@ async def start_num_teams_selection(update: Update, context: ContextTypes.DEFAUL
     reply_markup = InlineKeyboardMarkup(team_buttons)
     temp_message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        [cite_start]text=f"There are {total_players} players available. Please select the number of teams:", [cite: 46]
+        text=f"There are {total_players} players available. Please select the number of teams:",
         reply_markup=reply_markup
     )
     context.chat_data['temp_shuffle_message_id'] = temp_message.message_id
@@ -501,14 +501,14 @@ async def handle_num_teams_selection(update: Update, context: ContextTypes.DEFAU
     # Загружаем chat-специфичные данные
     load_chat_specific_state_for_context(chat_id, context)
 
-    [cite_start]selected_teams_str = query.data.replace("select_teams_", "") [cite: 47]
+    selected_teams_str = query.data.replace("select_teams_", "")
     num_teams = int(selected_teams_str)
 
     all_players_to_shuffle = context.chat_data.get('players_for_shuffle', [])
     total_players = context.chat_data.get('total_players_for_shuffle', 0)
 
     if not (2 <= num_teams <= total_players):
-        [cite_start]context.chat_data['shuffle_error'] = "Invalid number of teams selected. Please try again." [cite: 48]
+        context.chat_data['shuffle_error'] = "Invalid number of teams selected. Please try again."
         context.chat_data['shuffled_teams'] = []
         
         save_event_state(
@@ -518,13 +518,13 @@ async def handle_num_teams_selection(update: Update, context: ContextTypes.DEFAU
             context.chat_data['shuffle_error']
         )
         await query.answer("Invalid selection.")
-        [cite_start]if 'temp_shuffle_message_id' in context.chat_data and 'temp_shuffle_message_chat_id' in context.chat_data: [cite: 49]
+        if 'temp_shuffle_message_id' in context.chat_data and 'temp_shuffle_message_chat_id' in context.chat_data:
             try:
                 await context.bot.delete_message(
                     chat_id=context.chat_data['temp_shuffle_message_chat_id'],
                     message_id=context.chat_data['temp_shuffle_message_id']
                 )
-                [cite_start]del context.chat_data['temp_shuffle_message_id'] [cite: 50]
+                del context.chat_data['temp_shuffle_message_id']
                 del context.chat_data['temp_shuffle_message_chat_id']
             except Exception as e:
                 logger.warning(f"Failed to delete temp shuffle message on invalid selection: {e}")
@@ -533,7 +533,7 @@ async def handle_num_teams_selection(update: Update, context: ContextTypes.DEFAU
 
     random.shuffle(all_players_to_shuffle)
 
-    [cite_start]teams = [[] for _ in range(num_teams)] [cite: 51]
+    teams = [[] for _ in range(num_teams)]
     for i, player in enumerate(all_players_to_shuffle):
         teams[i % num_teams].append(player)
 
@@ -549,14 +549,14 @@ async def handle_num_teams_selection(update: Update, context: ContextTypes.DEFAU
 
     if 'temp_shuffle_message_id' in context.chat_data and 'temp_shuffle_message_chat_id' in context.chat_data:
         try:
-            [cite_start]await context.bot.delete_message( [cite: 52]
+            await context.bot.delete_message(
                 chat_id=context.chat_data['temp_shuffle_message_chat_id'],
                 message_id=context.chat_data['temp_shuffle_message_id']
             )
         except Exception as e:
             logger.warning(f"Failed to delete temp shuffle message: {e}")
         finally:
-            [cite_start]del context.chat_data['temp_shuffle_message_id'] [cite: 53]
+            del context.chat_data['temp_shuffle_message_id']
             del context.chat_data['temp_shuffle_message_chat_id']
 
     if 'players_for_shuffle' in context.chat_data:
@@ -572,7 +572,7 @@ async def handle_num_teams_selection(update: Update, context: ContextTypes.DEFAU
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles inline button presses that are not part of ConversationHandlers."""
     query = update.callback_query
-    [cite_start]data = query.data [cite: 54]
+    data = query.data
     chat_id = update.effective_chat.id
     logger.info(f"button_callback called with data: {data} from user {query.from_user.id} in chat {chat_id}")
 
@@ -588,7 +588,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # Initialize user if not in participants, including username
     if user_id not in event_data['participants']:
         event_data['participants'][user_id] = {'name': user_name, 'status': None, 'username': username}
-    [cite_start]else: # Update name/username in case it changed [cite: 55]
+    else: # Update name/username in case it changed
         event_data['participants'][user_id]['name'] = user_name
         event_data['participants'][user_id]['username'] = username
 
@@ -599,7 +599,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         context.chat_data['shuffle_error'] = None
         
         save_event_state(
-            [cite_start]context.chat_data.get('main_message_id'), [cite: 56]
+            context.chat_data.get('main_message_id'),
             context.chat_data.get('main_chat_id'),
             context.chat_data['shuffled_teams'], 
             context.chat_data['shuffle_error']
@@ -607,20 +607,20 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if 'temp_shuffle_message_id' in context.chat_data:
             try:
                 await context.bot.delete_message(
-                    [cite_start]chat_id=context.chat_data['temp_shuffle_message_chat_id'], [cite: 57]
+                    chat_id=context.chat_data['temp_shuffle_message_chat_id'],
                     message_id=context.chat_data['temp_shuffle_message_id']
                 )
             except Exception as e:
                 logger.warning(f"Failed to delete temp shuffle message on other button press: {e}")
             finally:
-                [cite_start]del context.chat_data['temp_shuffle_message_id'] [cite: 58]
+                del context.chat_data['temp_shuffle_message_id']
                 del context.chat_data['temp_shuffle_message_chat_id']
                 if 'players_for_shuffle' in context.chat_data: del context.chat_data['players_for_shuffle']
                 if 'total_players_for_shuffle' in context.chat_data: del context.chat_data['total_players_for_shuffle']
 
 
-    # Handle 'New Event' button
-    [cite_start]if data == "admin_new_event": [cite: 59]
+    # Handle 'New Event' button (THIS BLOCK IS NOW OBSOLETE AS BUTTON IS REMOVED, BUT LOGIC REMAINS IF DATA IS SENT)
+    if data == "admin_new_event":
         # Запускаем команду /start через ее обработчик, чтобы выполнить всю логику сброса
         await start_command_title_entry(update, context)
         return # Выходим, так как start_command_title_entry сам обновит/отправит сообщение
@@ -632,7 +632,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     # Handle status selection
-    [cite_start]if data.startswith("set_status_"): [cite: 60]
+    if data.startswith("set_status_"):
         new_status = data.replace("set_status_", "")
         event_data['participants'][user_id]['status'] = new_status
         event_data['participants'][user_id]['username'] = username
@@ -641,7 +641,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             context.chat_data.get('main_message_id'), 
             context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
-            [cite_start]context.chat_data.get('shuffle_error') [cite: 61]
+            context.chat_data.get('shuffle_error')
         )
 
     elif data == "add_plus_one":
@@ -652,7 +652,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         })
         
         save_event_state(
-            [cite_start]context.chat_data.get('main_message_id'), [cite: 62]
+            context.chat_data.get('main_message_id'),
             context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
             context.chat_data.get('shuffle_error')
@@ -661,7 +661,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         found_and_removed = False
         for i in range(len(event_data['plus_ones']) - 1, -1, -1):
             if event_data['plus_ones'][i]['added_by_id'] == user_id:
-                [cite_start]del event_data['plus_ones'][i] [cite: 63]
+                del event_data['plus_ones'][i]
                 found_and_removed = True
                 break
         if not found_and_removed:
@@ -669,7 +669,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         else:
             
             save_event_state(
-                [cite_start]context.chat_data.get('main_message_id'), [cite: 64]
+                context.chat_data.get('main_message_id'),
                 context.chat_data.get('main_chat_id'),
                 context.chat_data.get('shuffled_teams'), 
                 context.chat_data.get('shuffle_error')
@@ -677,7 +677,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif data == "reset_my_status":
         if user_id in event_data['participants']:
-            [cite_start]del event_data['participants'][user_id] [cite: 65]
+            del event_data['participants'][user_id]
         event_data['plus_ones'] = [
             entry for entry in event_data['plus_ones']
             if entry['added_by_id'] != user_id
@@ -685,7 +685,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         save_event_state(
             context.chat_data.get('main_message_id'), 
-            [cite_start]context.chat_data.get('main_chat_id'), [cite: 66]
+            context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
             context.chat_data.get('shuffle_error')
         )
@@ -696,7 +696,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         save_event_state(
             context.chat_data.get('main_message_id'), 
-            [cite_start]context.chat_data.get('main_chat_id'), [cite: 67]
+            context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
             context.chat_data.get('shuffle_error')
         )
@@ -706,7 +706,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         save_event_state(
             context.chat_data.get('main_message_id'), 
-            [cite_start]context.chat_data.get('main_chat_id'), [cite: 68]
+            context.chat_data.get('main_chat_id'),
             context.chat_data.get('shuffled_teams'), 
             context.chat_data.get('shuffle_error')
         )
@@ -718,7 +718,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 # --- НОВЫЙ ХЕНДЛЕР: Ошибка при запуске ConversationHandler ---
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    [cite_start]"""Cancels and ends the conversation.""" [cite: 69]
+    """Cancels and ends the conversation."""
     user = update.effective_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
@@ -734,14 +734,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     
     logger.info(f"'/help' command received from user {update.effective_user.id}.")
     await update.message.reply_text(
-        [cite_start]"Я бот для сбора на футбол!\n" [cite: 70]
+        "Я бот для сбора на футбол!\n"
         "Используйте /start для начала нового события.\n"
         "Нажмите кнопки, чтобы указать свое участие или управлять событием."
     )
 
 async def post_init(application: Application) -> None:
     """
-    [cite_start]Выполняется после инициализации Application и установки вебхука. [cite: 71]
+    Выполняется после инициализации Application и установки вебхука.
     Используется для начальной настройки, которая требует объекта bot.
     """
     # Если вы используете вебхуки, убедитесь, что WEBHOOK_URL установлен
@@ -752,7 +752,7 @@ async def post_init(application: Application) -> None:
         logger.info(f"Current webhook info: {webhook_info}")
         
         # Устанавливаем вебхук, только если он отличается от текущего
-        [cite_start]expected_webhook_url = f"{WEBHOOK_URL}/{TOKEN}" [cite: 72]
+        expected_webhook_url = f"{WEBHOOK_URL}/{TOKEN}"
         if webhook_info.url != expected_webhook_url:
             await application.bot.set_webhook(url=expected_webhook_url)
             logger.info(f"Webhook set to: {expected_webhook_url}")
@@ -763,10 +763,10 @@ async def post_init(application: Application) -> None:
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    [cite_start]"""Log the error and send a message to the user.""" [cite: 73]
+    """Log the error and send a message to the user."""
     logger.error("Exception while handling an update:", exc_info=context.error)
     if update and update.effective_message:
-        [cite_start]await update.effective_message.reply_text("Произошла ошибка. Пожалуйста, попробуйте еще раз.") [cite: 74]
+        await update.effective_message.reply_text("Произошла ошибка. Пожалуйста, попробуйте еще раз.")
     elif update and update.callback_query:
         await update.callback_query.answer("Произошла ошибка. Пожалуйста, попробуйте еще раз.")
 
@@ -782,14 +782,14 @@ def main() -> None:
     # *** ИЗМЕНЕНИЕ: Удаление проблемного блока из main() ***
     # УДАЛЕНО:
     # if loaded_message_id and loaded_chat_id:
-    #     [cite_start]if loaded_chat_id not in application.chat_data: [cite: 75]
+    #     if loaded_chat_id not in application.chat_data:
     #         application.chat_data[loaded_chat_id] = {} # ЭТА СТРОКА ВЫЗЫВАЛА ОШИБКУ
     #     application.chat_data[loaded_chat_id]['main_message_id'] = loaded_message_id
     #     application.chat_data[loaded_chat_id]['main_chat_id'] = loaded_chat_id
     #     application.chat_data[loaded_chat_id]['shuffled_teams'] = loaded_shuffled_teams
     #     application.chat_data[loaded_chat_id]['shuffle_error'] = loaded_shuffle_error
     #     logger.info(f"Loaded main message ID {loaded_message_id} for chat {loaded_chat_id} from Redis.")
-    # [cite_start]Вместо этого, `load_chat_specific_state_for_context` будет вызываться в каждом обработчике. [cite: 76]
+    # Вместо этого, `load_chat_specific_state_for_context` будет вызываться в каждом обработчике.
 # --- ОБРАБОТЧИКИ КОМАНД ---
     set_title_conv_handler = ConversationHandler(
         entry_points=[
@@ -800,7 +800,7 @@ def main() -> None:
             TITLE_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_title)],
         },
         fallbacks=[CommandHandler("cancel", cancel_command)],
-    [cite_start]) [cite: 77]
+    )
     application.add_handler(set_title_conv_handler)
     application.add_handler(CommandHandler("help", help_command))
 
@@ -816,7 +816,7 @@ def main() -> None:
     application.add_error_handler(error_handler)
 
     # --- ЗАПУСК БОТА ---
-    [cite_start]WEBHOOK_URL = os.environ.get("WEBHOOK_URL") [cite: 78]
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
     if WEBHOOK_URL:
         # Режим вебхука для Render
         application.run_webhook(
@@ -825,7 +825,7 @@ def main() -> None:
             url_path=TOKEN,
             webhook_url=f"{WEBHOOK_URL}/{TOKEN}"
         )
-        [cite_start]logger.info(f"Бот запущен в режиме вебхука на Render. URL: {WEBHOOK_URL}/{TOKEN}") [cite: 79]
+        logger.info(f"Бот запущен в режиме вебхука на Render. URL: {WEBHOOK_URL}/{TOKEN}")
     else:
         # Режим long polling для локального запуска или тестирования
         logger.info("Бот запущен в режиме long polling.")
